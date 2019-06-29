@@ -1,0 +1,126 @@
+;-----------------------------------------------------------
+;
+;              Build this with the "Source" menu using
+;                     "Build All" option
+;
+;-----------------------------------------------------------
+;
+;                           实验二示例程序 
+
+;-----------------------------------------------------------
+;                                                          |
+;                                                          |
+; 功能：控制7段数码管的显示                                |
+; 编写：《嵌入式系统原理与实验》课程组                     |
+;-----------------------------------------------------------
+		DOSSEG
+		.MODEL	SMALL		; 设定8086汇编程序使用Small model
+		.8086				; 设定采用8086汇编指令集
+;-----------------------------------------------------------
+;	符号定义                                               |
+;-----------------------------------------------------------
+;
+; 8255芯片端口地址 （Port number）分配:
+PortA	EQU	90H			; Port A's port number in I/O space
+PortB	EQU 	92H			; Port B's port number in I/O space
+PortC	EQU 	94H			; Port C's port number in I/O space
+CtrlPT	EQU 	96H			; 8255 Control Register's port number in I/O space
+
+
+;-----------------------------------------------------------
+;	定义数据段                                             |
+;-----------------------------------------------------------
+		.data					; 定义数据段;
+
+DelayShort	dw	4000			; 短延时参量	
+DelayLong	dw	40000			; 长延时参量
+
+; 显示数字
+DISCHAR DB 01,02,03,04
+
+; SEGTAB是显示字符0-F，其中有部分数据的段码有错误，请自行修正
+SEGTAB  	DB 3FH	; 0011 1111 7-Segment Tube, 共阴极类型的7段数码管示意图
+		DB 06H	; 0000 0110
+		DB 5BH	; 0101 1011           a a a
+		DB 4FH	; 0100 1111        f         b
+		DB 66H	; 0110 0110        f         b
+		DB 6DH	; 0110 1101        f         b
+		DB 7DH	; 0111 1101           g g g 
+		DB 07H	; 0000 0111        e         c
+		DB 7FH	; 0111 1111        e         c
+		DB 6FH	; 0110 1111        e         c
+		DB 77H	; 0111 0111           d d d     h h h
+		DB 7CH	; 0111 1100		----------------------------------
+		DB 39H	; 0011 1001     		 b7 b6 b5 b4 b3 b2 b1 b0
+		DB 5EH	; 0101 1110     	 	DP  g  f  e  d  c  b  a
+		DB 79H	; 0111 1001
+		DB 71H	; 0111 0001
+
+
+;-----------------------------------------------------------
+;	定义代码段                                             |
+;-----------------------------------------------------------
+		.code						; Code segment definition
+		.startup					; 定义汇编程序执行入口点
+;
+; Init 8255 in Mode 0
+; PortA Output, PortB Output
+;
+		MOV AL,10001001B
+		OUT CtrlPT,AL	;
+;
+; 把数字1、2、3、4显示在数码管上
+;
+
+s: 	 IN AL,PortC
+	 NOT AL
+	 MOV BL,AL
+	 AND AL,0F0H;高四位
+	 ADD AL,0EH;第一根管子
+	 OUT PortA,AL
+	 
+	 AND BL,0FH;低四位
+	 MOV AL,SEGTAB[BX]
+	 OUT PortB,AL
+	 JMP s
+   
+RET
+
+;--------------------------------------------
+;                                           |
+; Delay system running for a while          |
+; CX : contains time para.                  |
+;                                           |
+;--------------------------------------------
+
+DELAY1 	PROC
+    	PUSH CX
+    	MOV CX,DelayLong	;
+D0: 	LOOP D0
+    	POP CX
+    	RET
+DELAY1 	ENDP
+
+
+;--------------------------------------------
+;                                           |
+; Delay system running for a while          |
+;                                           |
+;--------------------------------------------
+
+DELAY 	PROC
+    	PUSH CX
+    	MOV CX,DelayShort
+D1: 	LOOP D1
+    	POP CX
+    	RET
+DELAY 	ENDP
+
+
+;-----------------------------------------------------------
+;	定义堆栈段                                             |
+;-----------------------------------------------------------
+		.stack 100h				; 定义256字节容量的堆栈
+
+
+		END	
